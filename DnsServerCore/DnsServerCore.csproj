@@ -127,16 +127,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CSharp" Version="4.5.0" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="TechnitiumLibrary.IO">
-      <HintPath>..\..\TechnitiumLibrary\bin\TechnitiumLibrary.IO.dll</HintPath>
-    </Reference>
-    <Reference Include="TechnitiumLibrary.Net">
-      <HintPath>..\..\TechnitiumLibrary\bin\TechnitiumLibrary.Net.dll</HintPath>
-    </Reference>
+    <Compile Update="Net\WebClientEx.cs">
+      <SubType>Component</SubType>
+    </Compile>
   </ItemGroup>
 
   <PropertyGroup>
