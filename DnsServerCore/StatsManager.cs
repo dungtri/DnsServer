@@ -41,8 +41,7 @@ namespace DnsServerCore
 
     public class StatsManager : IDisposable
     {
-        #region variables
-
+        
         readonly string _statsFolder;
         readonly LogManager _log;
 
@@ -55,10 +54,7 @@ namespace DnsServerCore
         const int MAINTENANCE_TIMER_INITIAL_INTERVAL = 60000;
         const int MAINTENANCE_TIMER_INTERVAL = 60000;
 
-        #endregion
-
-        #region constructor
-
+        
         public StatsManager(string statsFolder, LogManager log)
         {
             _statsFolder = statsFolder;
@@ -84,8 +80,6 @@ namespace DnsServerCore
 
             }, null, MAINTENANCE_TIMER_INITIAL_INTERVAL, MAINTENANCE_TIMER_INTERVAL);
         }
-
-        #endregion
 
         #region IDisposable
 

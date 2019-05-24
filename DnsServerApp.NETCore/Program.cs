@@ -1,31 +1,13 @@
-﻿/*
-Technitium DNS Server
-Copyright (C) 2019  Shreyas Zare (shreyas@technitium.com)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*/
-
-using DnsServerCore;
+﻿using DnsServerCore;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DnsServerApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             string configFolder = null;
 
@@ -33,7 +15,7 @@ namespace DnsServerApp
                 configFolder = args[0];
 
             DnsWebService service = null;
-
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             try
             {
                 service = new DnsWebService(configFolder, new Uri("https://go.technitium.com/?id=21"));
@@ -46,30 +28,23 @@ namespace DnsServerApp
                 Console.WriteLine("");
                 Console.WriteLine("Press [CTRL + C] to stop...");
 
-                Thread main = Thread.CurrentThread;
-
-                Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+                Console.CancelKeyPress += delegate
                 {
-                    e.Cancel = true;
-                    main.Interrupt();
+                    cancellationTokenSource.Cancel(false);
                 };
 
-                AppDomain.CurrentDomain.ProcessExit += delegate (object sender, EventArgs e)
+                while (true)
                 {
-                    if (service != null)
+                    await Task.Delay(1000, cancellationTokenSource.Token);
+
+                    if (cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        Console.WriteLine("");
-                        Console.WriteLine("Technitium DNS Server is stopping...");
-                        service.Dispose();
-                        service = null;
-                        Console.WriteLine("Technitium DNS Server was stopped successfully.");
+                        break;
                     }
-                };
-
-                Thread.Sleep(Timeout.Infinite);
+                }
             }
-            catch (ThreadInterruptedException)
-            { }
+            catch (ThreadInterruptedException) { }
+            catch (TaskCanceledException) { }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
