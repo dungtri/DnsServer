@@ -1,23 +1,4 @@
-﻿/*
-Technitium DNS Server
-Copyright (C) 2019  Shreyas Zare (shreyas@technitium.com)
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-*/
-
-using System;
+﻿using System;
 using System.IO;
 using System.Net;
 using TechnitiumLibrary.IO;
@@ -27,26 +8,13 @@ namespace DnsServerCore
 {
     public class LogManager : IDisposable
     {
-        #region variables
-
-        readonly string _logFolder;
-
-        string _logFile;
-        StreamWriter _logOut;
-        DateTime _logDate;
+        TextWriter _logOut = Console.Out;
 
         readonly object _logFileLock = new object();
-
-        #endregion
-
         #region constructor
 
-        public LogManager(string logFolder)
+        public LogManager()
         {
-            _logFolder = logFolder;
-
-            StartNewLog();
-
             AppDomain.CurrentDomain.UnhandledException += delegate (object sender, UnhandledExceptionEventArgs e)
             {
                 Write((Exception)e.ExceptionObject);
@@ -90,19 +58,9 @@ namespace DnsServerCore
 
         private void StartNewLog()
         {
-            DateTime now = DateTime.UtcNow;
 
-            if ((_logOut != null) && (now.Date > _logDate.Date))
-            {
-                Write(now, "Logging stopped.");
-                _logOut.Close();
-            }
+            _logOut = Console.Out;
 
-            _logFile = Path.Combine(_logFolder, now.ToString("yyyy-MM-dd") + ".log");
-            _logOut = new StreamWriter(new FileStream(_logFile, FileMode.Append, FileAccess.Write, FileShare.Read));
-            _logDate = now;
-
-            Write(now, "Logging started.");
         }
 
         private void Write(DateTime dateTime, string message)
@@ -244,9 +202,6 @@ namespace DnsServerCore
                 {
                     DateTime now = DateTime.UtcNow;
 
-                    if (now.Date > _logDate.Date)
-                        StartNewLog();
-
                     Write(now, message);
                 }
             }
@@ -254,27 +209,8 @@ namespace DnsServerCore
             { }
         }
 
-        public void DeleteCurrentLogFile()
-        {
-            lock (_logFileLock)
-            {
-                _logOut.Close();
-                File.Delete(_logFile);
-
-                StartNewLog();
-            }
-        }
 
         #endregion
 
-        #region properties
-
-        public string LogFolder
-        { get { return _logFolder; } }
-
-        public string CurrentLogFile
-        { get { return _logFile; } }
-
-        #endregion
     }
 }
