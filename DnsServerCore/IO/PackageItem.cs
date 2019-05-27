@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace TechnitiumLibrary.IO
+namespace DnsServerCore.IO
 {
     public enum PackageItemAttributes : byte
     {

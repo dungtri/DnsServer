@@ -23,9 +23,9 @@ using System.Net;
 using System.Net.Mime;
 using System.Net.Sockets;
 using System.Text;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Proxy;
 
-namespace TechnitiumLibrary.Net
+namespace DnsServerCore.Net
 {
     public static class WebUtilities
     {

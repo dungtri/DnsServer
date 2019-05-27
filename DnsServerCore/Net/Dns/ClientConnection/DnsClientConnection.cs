@@ -19,9 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using System;
 using System.Collections.Concurrent;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Proxy;
 
-namespace TechnitiumLibrary.Net.Dns.ClientConnection
+namespace DnsServerCore.Net.Dns.ClientConnection
 {
     public abstract class DnsClientConnection : IDisposable
     {

@@ -24,9 +24,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
-using TechnitiumLibrary.IO;
-using TechnitiumLibrary.Net;
-using TechnitiumLibrary.Net.Dns;
+using DnsServerCore.Net.Dns;
 
 namespace DnsServerCore
 {

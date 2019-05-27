@@ -21,7 +21,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
-using TechnitiumLibrary.Net.Dns;
+using DnsServerCore.Net.Dns;
 
 namespace DnsServerCore
 {

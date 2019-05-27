@@ -23,7 +23,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 
-namespace TechnitiumLibrary.Net.Proxy
+namespace DnsServerCore.Net.Proxy
 {
     enum SocksMethod : byte
     {

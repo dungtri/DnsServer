@@ -1,8 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using TechnitiumLibrary.IO;
-using TechnitiumLibrary.Net.Dns;
+using DnsServerCore.IO;
+using DnsServerCore.Net.Dns;
 
 namespace DnsServerCore
 {

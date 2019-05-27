@@ -29,27 +29,16 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using TechnitiumLibrary.IO;
-using TechnitiumLibrary.Net;
-using TechnitiumLibrary.Net.Dns;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.IO;
+using DnsServerCore.Net;
+using DnsServerCore.Net.Dns;
+using DnsServerCore.Net.Proxy;
 
 namespace DnsServerCore
 {
     public class DnsServer : IDisposable
     {
-        #region enum
-
-        enum ServiceState
-        {
-            Stopped = 0,
-            Starting = 1,
-            Running = 2,
-            Stopping = 3
-        }
-
-        #endregion
-
+        
         #region variables
 
         const int LISTENER_THREAD_COUNT = 3;
@@ -71,8 +60,8 @@ namespace DnsServerCore
         const uint MINIMUM_RECORD_TTL = 0u;
         const uint SERVE_STALE_TTL = 7 * 24 * 60 * 60; //7 days serve stale ttl as per draft-ietf-dnsop-serve-stale-04
 
-        bool _allowRecursion = false;
-        bool _allowRecursionOnlyForPrivateNetworks = false;
+        public bool AllowRecursion { get; set; } = true;
+        public bool AllowRecursionOnlyForPrivateNetworks { get; set; } = true;
         NameServerAddress[] _forwarders;
         bool _preferIPv6 = false;
         int _retries = 2;
@@ -112,22 +101,11 @@ namespace DnsServerCore
 
             if (ServicePointManager.DefaultConnectionLimit < 10)
                 ServicePointManager.DefaultConnectionLimit = 10; //concurrent http request limit required when using DNS-over-HTTPS forwarders
+
         }
 
         public DnsServer()
-            : this(new IPAddress[] { IPAddress.Any, IPAddress.IPv6Any })
-        { }
-
-        public DnsServer(IPAddress localIP)
-            : this(new IPAddress[] { localIP })
-        { }
-
-        public DnsServer(IPAddress[] localIPs)
         {
-            ServerDomain = Environment.MachineName.ToLower();
-            LocalAddresses = new[] {IPAddress.Any, IPAddress.IPv6Any};
-
-            LocalAddresses = localIPs;
             Cache = new ResolverDnsCache(_cacheZoneRoot);
         }
 
@@ -832,10 +810,10 @@ namespace DnsServerCore
 
         private bool IsRecursionAllowed(EndPoint remoteEP)
         {
-            if (!_allowRecursion)
+            if (!AllowRecursion)
                 return false;
 
-            if (_allowRecursionOnlyForPrivateNetworks)
+            if (AllowRecursionOnlyForPrivateNetworks)
             {
                 switch (remoteEP.AddressFamily)
                 {

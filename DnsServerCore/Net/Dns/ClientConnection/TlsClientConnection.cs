@@ -20,9 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using System.IO;
 using System.Net.Security;
 using System.Net.Sockets;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Proxy;
 
-namespace TechnitiumLibrary.Net.Dns.ClientConnection
+namespace DnsServerCore.Net.Dns.ClientConnection
 {
     public class TlsClientConnection : TcpClientConnection
     {

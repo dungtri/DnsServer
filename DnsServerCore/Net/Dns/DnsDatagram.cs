@@ -17,15 +17,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Text;
-using TechnitiumLibrary.IO;
+using DnsServerCore.IO;
+using Newtonsoft.Json;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public class DnsDatagram
     {

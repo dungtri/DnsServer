@@ -22,7 +22,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 
-namespace TechnitiumLibrary.Net.Proxy
+namespace DnsServerCore.Net.Proxy
 {
     public class WebProxyEx : WebProxy
     {

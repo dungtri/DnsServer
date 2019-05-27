@@ -23,7 +23,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public class DnsQuestionRecord
     {

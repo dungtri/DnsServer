@@ -21,9 +21,9 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Proxy;
 
-namespace TechnitiumLibrary.Net.Dns.ClientConnection
+namespace DnsServerCore.Net.Dns.ClientConnection
 {
     public class UdpClientConnection : DnsClientConnection
     {

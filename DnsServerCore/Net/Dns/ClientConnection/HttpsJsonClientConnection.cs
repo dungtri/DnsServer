@@ -17,12 +17,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-using Newtonsoft.Json;
 using System;
 using System.Text;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Proxy;
+using Newtonsoft.Json;
 
-namespace TechnitiumLibrary.Net.Dns.ClientConnection
+namespace DnsServerCore.Net.Dns.ClientConnection
 {
     public class HttpsJsonClientConnection : DnsClientConnection
     {

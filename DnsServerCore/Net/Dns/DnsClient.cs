@@ -26,10 +26,10 @@ using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Text;
-using TechnitiumLibrary.Net.Dns.ClientConnection;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.Net.Dns.ClientConnection;
+using DnsServerCore.Net.Proxy;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public enum DnsTransportProtocol : byte
     {

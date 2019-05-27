@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public enum DnsOpcode : byte
     {

@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public class DnsSRVRecord : DnsResourceRecordData
     {

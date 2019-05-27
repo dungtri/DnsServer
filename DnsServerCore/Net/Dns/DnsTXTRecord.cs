@@ -21,9 +21,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using TechnitiumLibrary.IO;
+using DnsServerCore.IO;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public class DnsTXTRecord : DnsResourceRecordData
     {

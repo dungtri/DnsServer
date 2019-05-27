@@ -22,9 +22,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Runtime.Serialization;
-using TechnitiumLibrary.IO;
+using DnsServerCore.IO;
 
-namespace TechnitiumLibrary.Net.Dns
+namespace DnsServerCore.Net.Dns
 {
     public class DnsARecord : DnsResourceRecordData
     {

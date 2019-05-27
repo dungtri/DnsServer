@@ -10,10 +10,9 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using TechnitiumLibrary.IO;
-using TechnitiumLibrary.Net;
-using TechnitiumLibrary.Net.Dns;
-using TechnitiumLibrary.Net.Proxy;
+using DnsServerCore.IO;
+using DnsServerCore.Net;
+using DnsServerCore.Net.Dns;
 
 namespace DnsServerCore
 {
@@ -47,7 +46,7 @@ namespace DnsServerCore
         DateTime _tlsCertificateLastModifiedOn;
         const int TLS_CERTIFICATE_UPDATE_TIMER_INITIAL_INTERVAL = 60000;
         const int TLS_CERTIFICATE_UPDATE_TIMER_INTERVAL = 60000;
-        
+
         volatile ServiceState _state = ServiceState.Stopped;
 
         readonly Zone _customBlockedZoneRoot = new Zone(true);
@@ -754,7 +753,7 @@ namespace DnsServerCore
             {
                 //save last updated on time
                 _blockListLastUpdatedOn = DateTime.UtcNow;
-                
+
                 // TODO: Save config here?
 
                 LoadBlockLists();
@@ -901,7 +900,11 @@ namespace DnsServerCore
                 {
                     LogManager = _log,
                     QueryLogManager = _log,
-                    StatsManager = _stats
+                    StatsManager = _stats,
+                    ServerDomain = Environment.MachineName.ToLower(),
+                    LocalAddresses = new[] { IPAddress.Any, IPAddress.IPv6Any },
+                    AllowRecursion = true,
+                    AllowRecursionOnlyForPrivateNetworks = true,
                 };
 
                 LoadZoneFiles();
@@ -968,52 +971,6 @@ namespace DnsServerCore
         #region properties
 
         public string ConfigFolder { get; }
-
-        #endregion
-    }
-
-    public class DnsWebServiceException : Exception
-    {
-        #region constructors
-
-        public DnsWebServiceException()
-            : base()
-        { }
-
-        public DnsWebServiceException(string message)
-            : base(message)
-        { }
-
-        public DnsWebServiceException(string message, Exception innerException)
-            : base(message, innerException)
-        { }
-
-        protected DnsWebServiceException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-            : base(info, context)
-        { }
-
-        #endregion
-    }
-
-    public class InvalidTokenDnsWebServiceException : DnsWebServiceException
-    {
-        #region constructors
-
-        public InvalidTokenDnsWebServiceException()
-            : base()
-        { }
-
-        public InvalidTokenDnsWebServiceException(string message)
-            : base(message)
-        { }
-
-        public InvalidTokenDnsWebServiceException(string message, Exception innerException)
-            : base(message, innerException)
-        { }
-
-        protected InvalidTokenDnsWebServiceException(System.Runtime.Serialization.SerializationInfo info, System.Runtime.Serialization.StreamingContext context)
-            : base(info, context)
-        { }
 
         #endregion
     }

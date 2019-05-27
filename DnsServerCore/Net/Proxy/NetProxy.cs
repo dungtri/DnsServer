@@ -21,7 +21,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace TechnitiumLibrary.Net.Proxy
+namespace DnsServerCore.Net.Proxy
 {
     public enum NetProxyType : byte
     {

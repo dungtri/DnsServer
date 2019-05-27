@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Security.Cryptography;
 
-namespace TechnitiumLibrary.IO
+namespace DnsServerCore.IO
 {
     public class BinaryNumber : IEquatable<BinaryNumber>, IComparable<BinaryNumber>
     {

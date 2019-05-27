@@ -21,9 +21,9 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using TechnitiumLibrary.Net.Dns;
+using DnsServerCore.Net.Dns;
 
-namespace TechnitiumLibrary.Net
+namespace DnsServerCore.Net
 {
     public class DomainEndPoint : EndPoint
     {

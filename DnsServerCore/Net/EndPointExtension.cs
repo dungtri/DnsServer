@@ -21,9 +21,9 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using TechnitiumLibrary.IO;
+using DnsServerCore.IO;
 
-namespace TechnitiumLibrary.Net
+namespace DnsServerCore.Net
 {
     public static class EndPointExtension
     {

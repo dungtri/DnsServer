@@ -24,7 +24,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace TechnitiumLibrary.IO
+namespace DnsServerCore.IO
 {
     public enum ExtractLocation : byte
     {
