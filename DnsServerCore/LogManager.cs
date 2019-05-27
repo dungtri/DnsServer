@@ -67,6 +67,8 @@ namespace DnsServerCore
         {
             _logOut.WriteLine("[" + dateTime.ToString("yyyy-MM-dd HH:mm:ss") + " UTC] " + message);
             _logOut.Flush();
+
+            Console.WriteLine("[" + dateTime.ToString("yyyy-MM-dd HH:mm:ss") + " UTC] " + message);
         }
 
         #endregion
@@ -112,7 +114,7 @@ namespace DnsServerCore
             Write(ep, ex.ToString());
         }
 
-        public void Write(IPEndPoint ep, string mesage)
+        public void Write(IPEndPoint ep, string message)
         {
             string ipInfo;
 
@@ -123,7 +125,7 @@ namespace DnsServerCore
             else
                 ipInfo = "[" + ep.ToString() + "] ";
 
-            Write(ipInfo + mesage);
+            Write(ipInfo + message);
         }
 
         public void Write(IPEndPoint ep, DnsTransportProtocol protocol, Exception ex)

@@ -1,12 +1,13 @@
 ﻿using DnsServerCore;
 using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace DnsServerApp
 {
     class Program
     {
-        static void Main(string[] args)
+        static async Task Main(string[] args)
         {
             string configFolder = null;
 
@@ -14,7 +15,7 @@ namespace DnsServerApp
                 configFolder = args[0];
 
             DnsService service = null;
-
+            CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             try
             {
                 service = new DnsService(configFolder);
@@ -26,30 +27,23 @@ namespace DnsServerApp
                 Console.WriteLine("");
                 Console.WriteLine("Press [CTRL + C] to stop...");
 
-                Thread main = Thread.CurrentThread;
-
-                Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+                Console.CancelKeyPress += delegate
                 {
-                    e.Cancel = true;
-                    main.Interrupt();
+                    cancellationTokenSource.Cancel(false);
                 };
 
-                AppDomain.CurrentDomain.ProcessExit += delegate
+                while (true)
                 {
-                    if (service != null)
+                    await Task.Delay(1000, cancellationTokenSource.Token);
+
+                    if (cancellationTokenSource.Token.IsCancellationRequested)
                     {
-                        Console.WriteLine("");
-                        Console.WriteLine("Technitium DNS Server is stopping...");
-                        service.Dispose();
-                        service = null;
-                        Console.WriteLine("Technitium DNS Server was stopped successfully.");
+                        break;
                     }
-                };
-
-                Thread.Sleep(Timeout.Infinite);
+                }
             }
-            catch (ThreadInterruptedException)
-            { }
+            catch (ThreadInterruptedException) { }
+            catch (TaskCanceledException) { }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
