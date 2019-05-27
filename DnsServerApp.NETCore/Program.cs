@@ -13,11 +13,11 @@ namespace DnsServerApp
             if (args.Length == 1)
                 configFolder = args[0];
 
-            DnsWebService service = null;
+            DnsService service = null;
 
             try
             {
-                service = new DnsWebService(configFolder);
+                service = new DnsService(configFolder);
                 service.Start();
 
                 Console.WriteLine("Technitium DNS Server was started successfully.");
