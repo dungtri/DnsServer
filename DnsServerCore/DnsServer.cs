@@ -55,8 +55,6 @@ namespace DnsServerCore
         const int LISTENER_THREAD_COUNT = 3;
         const int MAX_HOPS = 16;
 
-        IPAddress[] _localIPs;
-
         readonly List<Socket> _udpListeners = new List<Socket>();
         readonly List<Socket> _tcpListeners = new List<Socket>();
         readonly List<Socket> _httpListeners = new List<Socket>();
@@ -64,53 +62,33 @@ namespace DnsServerCore
         readonly List<Socket> _httpsListeners = new List<Socket>();
         readonly List<Thread> _listenerThreads = new List<Thread>();
 
-        bool _enableDnsOverHttp = false;
-        bool _enableDnsOverTls = false;
-        bool _enableDnsOverHttps = false;
-        bool _isDnsOverHttpsEnabled;
         X509Certificate2 _certificate;
 
-        readonly Zone _authoritativeZoneRoot = new Zone(true);
         readonly Zone _cacheZoneRoot = new Zone(false);
-        readonly Zone _allowedZoneRoot = new Zone(true);
         Zone _blockedZoneRoot = new Zone(true);
 
         const uint NEGATIVE_RECORD_TTL = 300u;
         const uint MINIMUM_RECORD_TTL = 0u;
         const uint SERVE_STALE_TTL = 7 * 24 * 60 * 60; //7 days serve stale ttl as per draft-ietf-dnsop-serve-stale-04
-        readonly DnsCache _dnsCache;
 
         bool _allowRecursion = false;
         bool _allowRecursionOnlyForPrivateNetworks = false;
-        NetProxy _proxy;
         NameServerAddress[] _forwarders;
-        DnsTransportProtocol _forwarderProtocol = DnsTransportProtocol.Udp;
-        DnsTransportProtocol _recursiveResolveProtocol = DnsTransportProtocol.Udp;
         bool _preferIPv6 = false;
         int _retries = 2;
         int _timeout = 2000;
-        int _maxStackCount = 10;
         int _cachePrefetchEligibility = 2;
         int _cachePrefetchTrigger = 9;
         int _cachePrefetchSampleIntervalInMinutes = 5;
         int _cachePrefetchSampleEligibilityHitsPerHour = 30;
-        LogManager _log;
-        LogManager _queryLog;
-        StatsManager _stats;
 
         int _tcpSendTimeout = 10000;
         int _tcpReceiveTimeout = 10000;
 
-        Timer _cachePrefetchSamplingTimer;
-        readonly object _cachePrefetchSamplingTimerLock = new object();
-
-        Timer _cachePrefetchRefreshTimer;
-        readonly object _cachePrefetchRefreshTimerLock = new object();
         const int CACHE_PREFETCH_REFRESH_TIMER_INITIAL_INTEVAL = 60000;
         DateTime _cachePrefetchSamplingTimerTriggersOn;
         DnsQuestionRecord[] _cachePrefetchSampleList;
 
-        Timer _cacheMaintenanceTimer;
         const int CACHE_MAINTENANCE_TIMER_INITIAL_INTEVAL = 60 * 60 * 1000;
         const int CACHE_MAINTENANCE_TIMER_PERIODIC_INTERVAL = 60 * 60 * 1000;
 
@@ -146,8 +124,11 @@ namespace DnsServerCore
 
         public DnsServer(IPAddress[] localIPs)
         {
-            _localIPs = localIPs;
-            _dnsCache = new ResolverDnsCache(_cacheZoneRoot);
+            ServerDomain = Environment.MachineName.ToLower();
+            LocalAddresses = new[] {IPAddress.Any, IPAddress.IPv6Any};
+
+            LocalAddresses = localIPs;
+            Cache = new ResolverDnsCache(_cacheZoneRoot);
         }
 
         #endregion
@@ -165,14 +146,14 @@ namespace DnsServerCore
             {
                 Stop();
 
-                if (_log != null)
-                    _log.Dispose();
+                if (LogManager != null)
+                    LogManager.Dispose();
 
-                if (_queryLog != null)
-                    _queryLog.Dispose();
+                if (QueryLogManager != null)
+                    QueryLogManager.Dispose();
 
-                if (_stats != null)
-                    _stats.Dispose();
+                if (StatsManager != null)
+                    StatsManager.Dispose();
             }
 
             _disposed = true;
@@ -231,7 +212,7 @@ namespace DnsServerCore
                         }
                         catch (Exception ex)
                         {
-                            LogManager log = _log;
+                            LogManager log = LogManager;
                             if (log != null)
                                 log.Write(remoteEP as IPEndPoint, DnsTransportProtocol.Udp, ex);
                         }
@@ -243,7 +224,7 @@ namespace DnsServerCore
                 if ((_state == ServiceState.Stopping) || (_state == ServiceState.Stopped))
                     return; //server stopping
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(remoteEP as IPEndPoint, DnsTransportProtocol.Udp, ex);
 
@@ -285,11 +266,11 @@ namespace DnsServerCore
                     //send dns datagram
                     udpListener.SendTo(sendBuffer, 0, (int)sendBufferStream.Position, SocketFlags.None, remoteEP);
 
-                    LogManager queryLog = _queryLog;
+                    LogManager queryLog = QueryLogManager;
                     if (queryLog != null)
                         queryLog.Write(remoteEP as IPEndPoint, DnsTransportProtocol.Udp, request, response);
 
-                    StatsManager stats = _stats;
+                    StatsManager stats = StatsManager;
                     if (stats != null)
                         stats.Update(response, (remoteEP as IPEndPoint).Address);
                 }
@@ -299,11 +280,11 @@ namespace DnsServerCore
                 if ((_state == ServiceState.Stopping) || (_state == ServiceState.Stopped))
                     return; //server stopping
 
-                LogManager queryLog = _queryLog;
+                LogManager queryLog = QueryLogManager;
                 if (queryLog != null)
                     queryLog.Write(remoteEP as IPEndPoint, DnsTransportProtocol.Udp, request, null);
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(remoteEP as IPEndPoint, DnsTransportProtocol.Udp, ex);
             }
@@ -382,7 +363,7 @@ namespace DnsServerCore
                         }
                         catch (Exception ex)
                         {
-                            LogManager log = _log;
+                            LogManager log = LogManager;
                             if (log != null)
                                 log.Write(remoteEP as IPEndPoint, protocol, ex);
                         }
@@ -399,7 +380,7 @@ namespace DnsServerCore
                 if ((_state == ServiceState.Stopping) || (_state == ServiceState.Stopped))
                     return; //server stopping
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(localEP, protocol, ex);
 
@@ -442,11 +423,11 @@ namespace DnsServerCore
             }
             catch (Exception ex)
             {
-                LogManager queryLog = _queryLog;
+                LogManager queryLog = QueryLogManager;
                 if ((queryLog != null) && (request != null))
                     queryLog.Write(remoteEP as IPEndPoint, protocol, request, null);
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(remoteEP as IPEndPoint, protocol, ex);
             }
@@ -488,11 +469,11 @@ namespace DnsServerCore
                         stream.Flush();
                     }
 
-                    LogManager queryLog = _queryLog;
+                    LogManager queryLog = QueryLogManager;
                     if (queryLog != null)
                         queryLog.Write(remoteEP as IPEndPoint, protocol, request, response);
 
-                    StatsManager stats = _stats;
+                    StatsManager stats = StatsManager;
                     if (stats != null)
                         stats.Update(response, (remoteEP as IPEndPoint).Address);
                 }
@@ -503,11 +484,11 @@ namespace DnsServerCore
             }
             catch (Exception ex)
             {
-                LogManager queryLog = _queryLog;
+                LogManager queryLog = QueryLogManager;
                 if ((queryLog != null) && (request != null))
                     queryLog.Write(remoteEP as IPEndPoint, protocol, request, null);
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(remoteEP as IPEndPoint, protocol, ex);
             }
@@ -698,11 +679,11 @@ namespace DnsServerCore
                                                 SendContent(stream, "application/dns-message", buffer);
                                             }
 
-                                            LogManager queryLog = _queryLog;
+                                            LogManager queryLog = QueryLogManager;
                                             if (queryLog != null)
                                                 queryLog.Write(remoteEP as IPEndPoint, protocol, dnsRequest, dnsResponse);
 
-                                            StatsManager stats = _stats;
+                                            StatsManager stats = StatsManager;
                                             if (stats != null)
                                                 stats.Update(dnsResponse, (remoteEP as IPEndPoint).Address);
                                         }
@@ -736,11 +717,11 @@ namespace DnsServerCore
                                                 SendContent(stream, "application/dns-json; charset=utf-8", buffer);
                                             }
 
-                                            LogManager queryLog = _queryLog;
+                                            LogManager queryLog = QueryLogManager;
                                             if (queryLog != null)
                                                 queryLog.Write(remoteEP as IPEndPoint, protocol, dnsRequest, dnsResponse);
 
-                                            StatsManager stats = _stats;
+                                            StatsManager stats = StatsManager;
                                             if (stats != null)
                                                 stats.Update(dnsResponse, (remoteEP as IPEndPoint).Address);
                                         }
@@ -767,8 +748,8 @@ namespace DnsServerCore
                                 jsonWriter.WritePropertyName("associated-resolvers");
                                 jsonWriter.WriteStartArray();
 
-                                if (_enableDnsOverHttp || _enableDnsOverHttps)
-                                    jsonWriter.WriteValue("https://" + _authoritativeZoneRoot.ServerDomain + "/dns-query{?dns}");
+                                if (EnableDnsOverHttp || EnableDnsOverHttps)
+                                    jsonWriter.WriteValue("https://" + AuthoritativeZoneRoot.ServerDomain + "/dns-query{?dns}");
 
                                 jsonWriter.WriteEndArray();
 
@@ -792,11 +773,11 @@ namespace DnsServerCore
             }
             catch (Exception ex)
             {
-                LogManager queryLog = _queryLog;
+                LogManager queryLog = QueryLogManager;
                 if ((queryLog != null) && (dnsRequest != null))
                     queryLog.Write(remoteEP as IPEndPoint, dnsProtocol, dnsRequest, null);
 
-                LogManager log = _log;
+                LogManager log = LogManager;
                 if (log != null)
                     log.Write(remoteEP as IPEndPoint, dnsProtocol, ex);
 
@@ -906,7 +887,7 @@ namespace DnsServerCore
                         if (blockedResponse.Header.RCODE != DnsResponseCode.Refused)
                         {
                             //query allowed zone
-                            DnsDatagram allowedResponse = _allowedZoneRoot.Query(request);
+                            DnsDatagram allowedResponse = AllowedZoneRoot.Query(request);
 
                             if (allowedResponse.Header.RCODE == DnsResponseCode.Refused)
                             {
@@ -949,7 +930,7 @@ namespace DnsServerCore
                     }
                     catch (Exception ex)
                     {
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(remoteEP as IPEndPoint, protocol, ex);
 
@@ -963,7 +944,7 @@ namespace DnsServerCore
 
         private DnsDatagram ProcessAuthoritativeQuery(DnsDatagram request, bool isRecursionAllowed)
         {
-            DnsDatagram response = _authoritativeZoneRoot.Query(request);
+            DnsDatagram response = AuthoritativeZoneRoot.Query(request);
             response.Tag = "cacheHit";
 
             if (response.Header.RCODE == DnsResponseCode.NoError)
@@ -987,7 +968,7 @@ namespace DnsServerCore
                             DnsDatagram cnameRequest = new DnsDatagram(new DnsHeader(0, false, DnsOpcode.StandardQuery, false, false, request.Header.RecursionDesired, false, false, false, DnsResponseCode.NoError, 1, 0, 0, 0), new DnsQuestionRecord[] { new DnsQuestionRecord((lastRR.RDATA as DnsCNAMERecord).CNAMEDomainName, questionType, DnsClass.IN) }, null, null, null);
 
                             //query authoritative zone first
-                            lastResponse = _authoritativeZoneRoot.Query(cnameRequest);
+                            lastResponse = AuthoritativeZoneRoot.Query(cnameRequest);
 
                             if (lastResponse.Header.RCODE == DnsResponseCode.Refused)
                             {
@@ -1166,7 +1147,7 @@ namespace DnsServerCore
                                     }
                                     catch (Exception ex)
                                     {
-                                        LogManager log = _log;
+                                        LogManager log = LogManager;
                                         if (log != null)
                                             log.Write(ex);
                                     }
@@ -1200,33 +1181,33 @@ namespace DnsServerCore
                             //refresh forwarder IPEndPoint if stale
                             foreach (NameServerAddress nameServerAddress in _forwarders)
                             {
-                                if (nameServerAddress.IsIPEndPointStale && (_proxy == null)) //recursive resolve name server when proxy is null else let proxy resolve it
-                                    nameServerAddress.RecursiveResolveIPAddress(_dnsCache, _proxy, _preferIPv6, _recursiveResolveProtocol, _retries, _timeout, _recursiveResolveProtocol);
+                                if (nameServerAddress.IsIPEndPointStale && (Proxy == null)) //recursive resolve name server when proxy is null else let proxy resolve it
+                                    nameServerAddress.RecursiveResolveIPAddress(Cache, Proxy, _preferIPv6, RecursiveResolveProtocol, _retries, _timeout, RecursiveResolveProtocol);
                             }
 
                             //query forwarders and update cache
                             DnsClient dnsClient = new DnsClient(_forwarders);
 
-                            dnsClient.Proxy = _proxy;
+                            dnsClient.Proxy = Proxy;
                             dnsClient.PreferIPv6 = _preferIPv6;
-                            dnsClient.Protocol = _forwarderProtocol;
+                            dnsClient.Protocol = ForwarderProtocol;
                             dnsClient.Retries = _retries;
                             dnsClient.Timeout = _timeout;
-                            dnsClient.RecursiveResolveProtocol = _recursiveResolveProtocol;
+                            dnsClient.RecursiveResolveProtocol = RecursiveResolveProtocol;
 
                             response = dnsClient.Resolve(request.Question[0]);
 
-                            _dnsCache.CacheResponse(response);
+                            Cache.CacheResponse(response);
                         }
                         else
                         {
                             //recursive resolve and update cache
-                            response = DnsClient.RecursiveResolve(request.Question[0], viaNameServers, (cachePrefetchOperation || cacheRefreshOperation ? new ResolverPrefetchDnsCache(_cacheZoneRoot, request.Question[0]) : _dnsCache), _proxy, _preferIPv6, _recursiveResolveProtocol, _retries, _timeout, _recursiveResolveProtocol, _maxStackCount);
+                            response = DnsClient.RecursiveResolve(request.Question[0], viaNameServers, (cachePrefetchOperation || cacheRefreshOperation ? new ResolverPrefetchDnsCache(_cacheZoneRoot, request.Question[0]) : Cache), Proxy, _preferIPv6, RecursiveResolveProtocol, _retries, _timeout, RecursiveResolveProtocol, MaxStackCount);
                         }
                     }
                     catch (Exception ex)
                     {
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                         {
                             string nameServers = null;
@@ -1398,169 +1379,6 @@ namespace DnsServerCore
             return false; //no need to refresh for this query
         }
 
-        private void CachePrefetchSamplingAsync(object state)
-        {
-            try
-            {
-                StatsManager stats = _stats;
-                if (stats != null)
-                {
-                    List<KeyValuePair<DnsQuestionRecord, int>> eligibleQueries = stats.GetLastHourEligibleQueries(_cachePrefetchSampleEligibilityHitsPerHour);
-                    List<DnsQuestionRecord> cacheRefreshSampleList = new List<DnsQuestionRecord>();
-                    int cacheRefreshTrigger = (_cachePrefetchSampleIntervalInMinutes + 1) * 60;
-
-                    foreach (KeyValuePair<DnsQuestionRecord, int> query in eligibleQueries)
-                    {
-                        if (_authoritativeZoneRoot.ZoneExistsAndEnabled(query.Key.Name))
-                            continue; //no cache refresh for zone that is hosted and enabled
-
-                        if (query.Key.Type == DnsResourceRecordType.ANY)
-                            continue; //dont refresh ANY queries
-
-                        DnsQuestionRecord refreshQuery = GetCacheRefreshNeededQuery(query.Key, cacheRefreshTrigger);
-                        if (refreshQuery != null)
-                            cacheRefreshSampleList.Add(refreshQuery);
-                    }
-
-                    _cachePrefetchSampleList = cacheRefreshSampleList.ToArray();
-                }
-            }
-            catch (Exception ex)
-            {
-                LogManager log = _log;
-                if (log != null)
-                    log.Write(ex);
-            }
-            finally
-            {
-                lock (_cachePrefetchSamplingTimerLock)
-                {
-                    if (_cachePrefetchSamplingTimer != null)
-                    {
-                        _cachePrefetchSamplingTimer.Change(_cachePrefetchSampleIntervalInMinutes * 60 * 1000, System.Threading.Timeout.Infinite);
-                        _cachePrefetchSamplingTimerTriggersOn = DateTime.UtcNow.AddMinutes(_cachePrefetchSampleIntervalInMinutes);
-                    }
-                }
-            }
-        }
-
-        private void CachePrefetchRefreshAsync(object state)
-        {
-            try
-            {
-                DnsQuestionRecord[] cacheRefreshSampleList = _cachePrefetchSampleList;
-                if (cacheRefreshSampleList != null)
-                {
-                    for (int i = 0; i < cacheRefreshSampleList.Length; i++)
-                    {
-                        DnsQuestionRecord sampleQuestion = cacheRefreshSampleList[i];
-                        if (sampleQuestion == null)
-                            continue;
-
-                        if (!CacheRefreshNeeded(sampleQuestion, _cachePrefetchTrigger + 2))
-                            continue;
-
-                        int sampleQuestionIndex = i;
-
-                        ThreadPool.QueueUserWorkItem(delegate (object state2)
-                        {
-                            try
-                            {
-                                //refresh cache
-                                DnsDatagram response = ProcessRecursiveQuery(new DnsDatagram(new DnsHeader(0, false, DnsOpcode.StandardQuery, false, false, true, false, false, false, DnsResponseCode.NoError, 1, 0, 0, 0), new DnsQuestionRecord[] { sampleQuestion }, null, null, null), null, true);
-
-                                bool removeFromSampleList = true;
-                                DateTime utcNow = DateTime.UtcNow;
-
-                                foreach (DnsResourceRecord answer in response.Answer)
-                                {
-                                    if ((answer.OriginalTtlValue > _cachePrefetchEligibility) && (utcNow.AddSeconds(answer.TtlValue) < _cachePrefetchSamplingTimerTriggersOn))
-                                    {
-                                        //answer expires before next sampling so dont remove from list to allow refreshing it
-                                        removeFromSampleList = false;
-                                        break;
-                                    }
-                                }
-
-                                if (removeFromSampleList)
-                                    cacheRefreshSampleList[sampleQuestionIndex] = null;
-                            }
-                            catch (Exception ex)
-                            {
-                                LogManager log = _log;
-                                if (log != null)
-                                    log.Write(ex);
-                            }
-                        });
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                LogManager log = _log;
-                if (log != null)
-                    log.Write(ex);
-            }
-            finally
-            {
-                lock (_cachePrefetchRefreshTimerLock)
-                {
-                    if (_cachePrefetchRefreshTimer != null)
-                        _cachePrefetchRefreshTimer.Change((_cachePrefetchTrigger + 1) * 1000, System.Threading.Timeout.Infinite);
-                }
-            }
-        }
-
-        private void CacheMaintenanceAsync(object state)
-        {
-            try
-            {
-                _cacheZoneRoot.RemoveExpiredCachedRecords();
-            }
-            catch (Exception ex)
-            {
-                LogManager log = _log;
-                if (log != null)
-                    log.Write(ex);
-            }
-        }
-
-        private void ResetPrefetchTimers()
-        {
-            if (_cachePrefetchTrigger == 0)
-            {
-                lock (_cachePrefetchSamplingTimerLock)
-                {
-                    if (_cachePrefetchSamplingTimer != null)
-                        _cachePrefetchSamplingTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-                }
-
-                lock (_cachePrefetchRefreshTimerLock)
-                {
-                    if (_cachePrefetchRefreshTimer != null)
-                        _cachePrefetchRefreshTimer.Change(System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-                }
-            }
-            else if (_state == ServiceState.Running)
-            {
-                lock (_cachePrefetchSamplingTimerLock)
-                {
-                    if (_cachePrefetchSamplingTimer != null)
-                    {
-                        _cachePrefetchSamplingTimer.Change(_cachePrefetchSampleIntervalInMinutes * 60 * 1000, System.Threading.Timeout.Infinite);
-                        _cachePrefetchSamplingTimerTriggersOn = DateTime.UtcNow.AddMinutes(_cachePrefetchSampleIntervalInMinutes);
-                    }
-                }
-
-                lock (_cachePrefetchRefreshTimerLock)
-                {
-                    if (_cachePrefetchRefreshTimer != null)
-                        _cachePrefetchRefreshTimer.Change(CACHE_PREFETCH_REFRESH_TIMER_INITIAL_INTEVAL, System.Threading.Timeout.Infinite);
-                }
-            }
-
-        }
-
         #endregion
 
         #region public
@@ -1576,9 +1394,9 @@ namespace DnsServerCore
             _state = ServiceState.Starting;
 
             //bind on all local end points
-            for (int i = 0; i < _localIPs.Length; i++)
+            for (int i = 0; i < LocalAddresses.Length; i++)
             {
-                IPEndPoint dnsEP = new IPEndPoint(_localIPs[i], 53);
+                IPEndPoint dnsEP = new IPEndPoint(LocalAddresses[i], 53);
 
                 Socket udpListener = new Socket(dnsEP.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 
@@ -1601,13 +1419,13 @@ namespace DnsServerCore
 
                     _udpListeners.Add(udpListener);
 
-                    LogManager log = _log;
+                    LogManager log = LogManager;
                     if (log != null)
                         log.Write(dnsEP, DnsTransportProtocol.Udp, "DNS Server was bound successfully.");
                 }
                 catch (Exception ex)
                 {
-                    LogManager log = _log;
+                    LogManager log = LogManager;
                     if (log != null)
                         log.Write(dnsEP, DnsTransportProtocol.Udp, "DNS Server failed to bind.\r\n" + ex.ToString());
 
@@ -1623,22 +1441,22 @@ namespace DnsServerCore
 
                     _tcpListeners.Add(tcpListener);
 
-                    LogManager log = _log;
+                    LogManager log = LogManager;
                     if (log != null)
                         log.Write(dnsEP, DnsTransportProtocol.Tcp, "DNS Server was bound successfully.");
                 }
                 catch (Exception ex)
                 {
-                    LogManager log = _log;
+                    LogManager log = LogManager;
                     if (log != null)
                         log.Write(dnsEP, DnsTransportProtocol.Tcp, "DNS Server failed to bind.\r\n" + ex.ToString());
 
                     tcpListener.Dispose();
                 }
 
-                if (_enableDnsOverHttp)
+                if (EnableDnsOverHttp)
                 {
-                    IPEndPoint httpEP = new IPEndPoint(_localIPs[i], 8053);
+                    IPEndPoint httpEP = new IPEndPoint(LocalAddresses[i], 8053);
                     Socket httpListener = new Socket(httpEP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                     try
@@ -1648,15 +1466,15 @@ namespace DnsServerCore
 
                         _httpListeners.Add(httpListener);
 
-                        _isDnsOverHttpsEnabled = true;
+                        IsDnsOverHttpsEnabled = true;
 
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(httpEP, DnsTransportProtocol.Https, "DNS Server was bound successfully.");
                     }
                     catch (Exception ex)
                     {
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(httpEP, DnsTransportProtocol.Https, "DNS Server failed to bind.\r\n" + ex.ToString());
 
@@ -1664,9 +1482,9 @@ namespace DnsServerCore
                     }
                 }
 
-                if (_enableDnsOverTls && (_certificate != null))
+                if (EnableDnsOverTls && (_certificate != null))
                 {
-                    IPEndPoint tlsEP = new IPEndPoint(_localIPs[i], 853);
+                    IPEndPoint tlsEP = new IPEndPoint(LocalAddresses[i], 853);
                     Socket tlsListener = new Socket(tlsEP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                     try
@@ -1676,13 +1494,13 @@ namespace DnsServerCore
 
                         _tlsListeners.Add(tlsListener);
 
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(tlsEP, DnsTransportProtocol.Tls, "DNS Server was bound successfully.");
                     }
                     catch (Exception ex)
                     {
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(tlsEP, DnsTransportProtocol.Tls, "DNS Server failed to bind.\r\n" + ex.ToString());
 
@@ -1690,9 +1508,9 @@ namespace DnsServerCore
                     }
                 }
 
-                if (_enableDnsOverHttps && (_certificate != null))
+                if (EnableDnsOverHttps && (_certificate != null))
                 {
-                    IPEndPoint httpsEP = new IPEndPoint(_localIPs[i], 443);
+                    IPEndPoint httpsEP = new IPEndPoint(LocalAddresses[i], 443);
                     Socket httpsListener = new Socket(httpsEP.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
                     try
@@ -1702,15 +1520,15 @@ namespace DnsServerCore
 
                         _httpsListeners.Add(httpsListener);
 
-                        _isDnsOverHttpsEnabled = true;
+                        IsDnsOverHttpsEnabled = true;
 
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(httpsEP, DnsTransportProtocol.Https, "DNS Server was bound successfully.");
                     }
                     catch (Exception ex)
                     {
-                        LogManager log = _log;
+                        LogManager log = LogManager;
                         if (log != null)
                             log.Write(httpsEP, DnsTransportProtocol.Https, "DNS Server failed to bind.\r\n" + ex.ToString());
 
@@ -1719,17 +1537,17 @@ namespace DnsServerCore
                 }
             }
 
-            if (_isDnsOverHttpsEnabled)
+            if (IsDnsOverHttpsEnabled)
             {
-                string serverDomain = _authoritativeZoneRoot.ServerDomain;
+                string serverDomain = AuthoritativeZoneRoot.ServerDomain;
 
-                _authoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(serverDomain, "hostmaster." + serverDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
-                _authoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(serverDomain) });
-                _authoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.TXT, 60, new DnsResourceRecordData[] { new DnsTXTRecord("https://" + serverDomain + "/dns-query{?dns}") });
+                AuthoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(serverDomain, "hostmaster." + serverDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
+                AuthoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(serverDomain) });
+                AuthoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.TXT, 60, new DnsResourceRecordData[] { new DnsTXTRecord("https://" + serverDomain + "/dns-query{?dns}") });
 
-                _authoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(serverDomain, "hostmaster." + serverDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
-                _authoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(serverDomain) });
-                _authoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.CNAME, 60, new DnsResourceRecordData[] { new DnsCNAMERecord(serverDomain) });
+                AuthoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(serverDomain, "hostmaster." + serverDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
+                AuthoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(serverDomain) });
+                AuthoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.CNAME, 60, new DnsResourceRecordData[] { new DnsCNAMERecord(serverDomain) });
             }
 
             //start reading query packets
@@ -1793,13 +1611,7 @@ namespace DnsServerCore
                 }
             }
 
-            _cachePrefetchSamplingTimer = new Timer(CachePrefetchSamplingAsync, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-            _cachePrefetchRefreshTimer = new Timer(CachePrefetchRefreshAsync, null, System.Threading.Timeout.Infinite, System.Threading.Timeout.Infinite);
-            _cacheMaintenanceTimer = new Timer(CacheMaintenanceAsync, null, CACHE_MAINTENANCE_TIMER_INITIAL_INTEVAL, CACHE_MAINTENANCE_TIMER_PERIODIC_INTERVAL);
-
             _state = ServiceState.Running;
-
-            ResetPrefetchTimers();
         }
 
         public void Stop()
@@ -1808,30 +1620,6 @@ namespace DnsServerCore
                 return;
 
             _state = ServiceState.Stopping;
-
-            lock (_cachePrefetchSamplingTimerLock)
-            {
-                if (_cachePrefetchSamplingTimer != null)
-                {
-                    _cachePrefetchSamplingTimer.Dispose();
-                    _cachePrefetchSamplingTimer = null;
-                }
-            }
-
-            lock (_cachePrefetchRefreshTimerLock)
-            {
-                if (_cachePrefetchRefreshTimer != null)
-                {
-                    _cachePrefetchRefreshTimer.Dispose();
-                    _cachePrefetchRefreshTimer = null;
-                }
-            }
-
-            if (_cacheMaintenanceTimer != null)
-            {
-                _cacheMaintenanceTimer.Dispose();
-                _cacheMaintenanceTimer = null;
-            }
 
             foreach (Socket udpListener in _udpListeners)
                 udpListener.Dispose();
@@ -1862,53 +1650,36 @@ namespace DnsServerCore
 
         #region properties
 
-        public IPAddress[] LocalAddresses
-        {
-            get { return _localIPs; }
-            set { _localIPs = value; }
-        }
+        public IPAddress[] LocalAddresses { get; set; }
 
         public string ServerDomain
         {
-            get { return _authoritativeZoneRoot.ServerDomain; }
+            get => AuthoritativeZoneRoot.ServerDomain;
             set
             {
-                _authoritativeZoneRoot.ServerDomain = value;
-                _allowedZoneRoot.ServerDomain = value;
+                AuthoritativeZoneRoot.ServerDomain = value;
+                AllowedZoneRoot.ServerDomain = value;
                 _blockedZoneRoot.ServerDomain = value;
 
-                if (_isDnsOverHttpsEnabled)
+                if (IsDnsOverHttpsEnabled)
                 {
-                    _authoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.TXT, 60, new DnsResourceRecordData[] { new DnsTXTRecord("https://" + value + "/dns-query{?dns}") });
-                    _authoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.CNAME, 60, new DnsResourceRecordData[] { new DnsCNAMERecord(value) });
+                    AuthoritativeZoneRoot.SetRecords("resolver-associated-doh.arpa", DnsResourceRecordType.TXT, 60, new DnsResourceRecordData[] { new DnsTXTRecord("https://" + value + "/dns-query{?dns}") });
+                    AuthoritativeZoneRoot.SetRecords("resolver-addresses.arpa", DnsResourceRecordType.CNAME, 60, new DnsResourceRecordData[] { new DnsCNAMERecord(value) });
                 }
             }
         }
 
-        public bool EnableDnsOverHttp
-        {
-            get { return _enableDnsOverHttp; }
-            set { _enableDnsOverHttp = value; }
-        }
+        public bool EnableDnsOverHttp { get; set; } = false;
 
-        public bool EnableDnsOverTls
-        {
-            get { return _enableDnsOverTls; }
-            set { _enableDnsOverTls = value; }
-        }
+        public bool EnableDnsOverTls { get; set; } = false;
 
-        public bool EnableDnsOverHttps
-        {
-            get { return _enableDnsOverHttps; }
-            set { _enableDnsOverHttps = value; }
-        }
+        public bool EnableDnsOverHttps { get; set; } = false;
 
-        public bool IsDnsOverHttpsEnabled
-        { get { return _isDnsOverHttpsEnabled; } }
+        public bool IsDnsOverHttpsEnabled { get; private set; }
 
         public X509Certificate2 Certificate
         {
-            get { return _certificate; }
+            get => _certificate;
             set
             {
                 if (!value.HasPrivateKey)
@@ -1918,18 +1689,13 @@ namespace DnsServerCore
             }
         }
 
-        public Zone AuthoritativeZoneRoot
-        { get { return _authoritativeZoneRoot; } }
+        public Zone AuthoritativeZoneRoot { get; } = new Zone(true);
 
-        public Zone CacheZoneRoot
-        { get { return _cacheZoneRoot; } }
-
-        public Zone AllowedZoneRoot
-        { get { return _allowedZoneRoot; } }
+        public Zone AllowedZoneRoot { get; } = new Zone(true);
 
         public Zone BlockedZoneRoot
         {
-            get { return _blockedZoneRoot; }
+            get => _blockedZoneRoot;
             set
             {
                 if (value == null)
@@ -1939,166 +1705,25 @@ namespace DnsServerCore
                     throw new ArgumentException("Blocked zone must be authoritative.");
 
                 _blockedZoneRoot = value;
-                _blockedZoneRoot.ServerDomain = _authoritativeZoneRoot.ServerDomain;
+                _blockedZoneRoot.ServerDomain = AuthoritativeZoneRoot.ServerDomain;
             }
         }
 
-        internal DnsCache Cache
-        { get { return _dnsCache; } }
+        internal DnsCache Cache { get; }
 
-        public bool AllowRecursion
-        {
-            get { return _allowRecursion; }
-            set { _allowRecursion = value; }
-        }
+        public NetProxy Proxy { get; set; }
 
-        public bool AllowRecursionOnlyForPrivateNetworks
-        {
-            get { return _allowRecursionOnlyForPrivateNetworks; }
-            set { _allowRecursionOnlyForPrivateNetworks = value; }
-        }
+        public DnsTransportProtocol ForwarderProtocol { get; set; } = DnsTransportProtocol.Udp;
 
-        public NetProxy Proxy
-        {
-            get { return _proxy; }
-            set { _proxy = value; }
-        }
+        public DnsTransportProtocol RecursiveResolveProtocol { get; set; } = DnsTransportProtocol.Udp;
 
-        public NameServerAddress[] Forwarders
-        {
-            get { return _forwarders; }
-            set { _forwarders = value; }
-        }
+        public int MaxStackCount { get; set; } = 10;
 
-        public DnsTransportProtocol ForwarderProtocol
-        {
-            get { return _forwarderProtocol; }
-            set { _forwarderProtocol = value; }
-        }
+        public LogManager LogManager { get; set; }
 
-        public DnsTransportProtocol RecursiveResolveProtocol
-        {
-            get { return _recursiveResolveProtocol; }
-            set { _recursiveResolveProtocol = value; }
-        }
+        public LogManager QueryLogManager { get; set; }
 
-        public bool PreferIPv6
-        {
-            get { return _preferIPv6; }
-            set { _preferIPv6 = value; }
-        }
-
-        public int Retries
-        {
-            get { return _retries; }
-            set
-            {
-                if (value > 0)
-                    _retries = value;
-            }
-        }
-
-        public int Timeout
-        {
-            get { return _timeout; }
-            set
-            {
-                if (value >= 2000)
-                    _timeout = value;
-            }
-        }
-
-        public int MaxStackCount
-        {
-            get { return _maxStackCount; }
-            set { _maxStackCount = value; }
-        }
-
-        public int CachePrefetchEligibility
-        {
-            get { return _cachePrefetchEligibility; }
-            set
-            {
-                if (value < 2)
-                    throw new ArgumentOutOfRangeException("CachePrefetchEligibility", "Valid value is greater that or equal to 2.");
-
-                _cachePrefetchEligibility = value;
-            }
-        }
-
-        public int CachePrefetchTrigger
-        {
-            get { return _cachePrefetchTrigger; }
-            set
-            {
-                if (value < 0)
-                    throw new ArgumentOutOfRangeException("CachePrefetchTrigger", "Valid value is greater that or equal to 0.");
-
-                if (_cachePrefetchTrigger != value)
-                {
-                    _cachePrefetchTrigger = value;
-                    ResetPrefetchTimers();
-                }
-            }
-        }
-
-        public int CachePrefetchSampleIntervalInMinutes
-        {
-            get { return _cachePrefetchSampleIntervalInMinutes; }
-            set
-            {
-                if ((value < 1) || (value > 60))
-                    throw new ArgumentOutOfRangeException("CacheRefreshSampleIntervalInMinutes", "Valid range is between 1 and 60 minutes.");
-
-                if (_cachePrefetchSampleIntervalInMinutes != value)
-                {
-                    _cachePrefetchSampleIntervalInMinutes = value;
-                    ResetPrefetchTimers();
-                }
-            }
-        }
-
-        public int CachePrefetchSampleEligibilityHitsPerHour
-        {
-            get { return _cachePrefetchSampleEligibilityHitsPerHour; }
-            set
-            {
-                if (value < 1)
-                    throw new ArgumentOutOfRangeException("CachePrefetchSampleEligibilityHitsPerHour", "Valid value is greater than or equal to 1.");
-
-                _cachePrefetchSampleEligibilityHitsPerHour = value;
-            }
-        }
-
-        public LogManager LogManager
-        {
-            get { return _log; }
-            set { _log = value; }
-        }
-
-        public LogManager QueryLogManager
-        {
-            get { return _queryLog; }
-            set { _queryLog = value; }
-        }
-
-        public StatsManager StatsManager
-        {
-            get { return _stats; }
-            set { _stats = value; }
-        }
-
-        public int TcpSendTimeout
-        {
-            get { return _tcpSendTimeout; }
-            set { _tcpSendTimeout = value; }
-        }
-
-        public int TcpReceiveTimeout
-        {
-            get { return _tcpReceiveTimeout; }
-            set { _tcpReceiveTimeout = value; }
-        }
+        public StatsManager StatsManager { get; set; }
 
         #endregion
 
@@ -2106,7 +1731,7 @@ namespace DnsServerCore
         {
             #region variables
 
-            readonly protected Zone _cacheZoneRoot;
+            protected readonly Zone _cacheZoneRoot;
 
             #endregion
 
@@ -2170,19 +1795,16 @@ namespace DnsServerCore
         {
             #region variables
 
-            bool _complete;
-            DnsDatagram _response;
-
             #endregion
 
             #region public
 
             public void SetComplete(DnsDatagram response)
             {
-                if (!_complete)
+                if (!Complete)
                 {
-                    _complete = true;
-                    _response = response;
+                    Complete = true;
+                    Response = response;
                 }
             }
 
@@ -2190,11 +1812,9 @@ namespace DnsServerCore
 
             #region properties
 
-            public bool Complete
-            { get { return _complete; } }
+            public bool Complete { get; private set; }
 
-            public DnsDatagram Response
-            { get { return _response; } }
+            public DnsDatagram Response { get; private set; }
 
             #endregion
         }

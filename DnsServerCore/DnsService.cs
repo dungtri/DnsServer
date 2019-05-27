@@ -35,8 +35,7 @@ namespace DnsServerCore
 
         readonly string _currentVersion;
         readonly string _appFolder;
-        readonly string _configFolder;
-        
+
         readonly LogManager _log;
         StatsManager _stats;
 
@@ -79,17 +78,17 @@ namespace DnsServerCore
             _appFolder = Path.GetDirectoryName(assembly.Location);
 
             if (configFolder == null)
-                _configFolder = Path.Combine(_appFolder, "config");
+                ConfigFolder = Path.Combine(_appFolder, "config");
             else
-                _configFolder = configFolder;
+                ConfigFolder = configFolder;
 
-            if (!Directory.Exists(_configFolder))
-                Directory.CreateDirectory(_configFolder);
+            if (!Directory.Exists(ConfigFolder))
+                Directory.CreateDirectory(ConfigFolder);
 
 
             _log = new LogManager();
 
-            string blockListsFolder = Path.Combine(_configFolder, "blocklists");
+            string blockListsFolder = Path.Combine(ConfigFolder, "blocklists");
 
             if (!Directory.Exists(blockListsFolder))
                 Directory.CreateDirectory(blockListsFolder);
@@ -243,7 +242,7 @@ namespace DnsServerCore
 
         private void LoadZoneFiles()
         {
-            string[] zoneFiles = Directory.GetFiles(_configFolder, "*.zone");
+            string[] zoneFiles = Directory.GetFiles(ConfigFolder, "*.zone");
 
             if (zoneFiles.Length == 0)
             {
@@ -407,7 +406,7 @@ namespace DnsServerCore
                 //write to zone file
                 mS.Position = 0;
 
-                using (FileStream fS = new FileStream(Path.Combine(_configFolder, authZone + ".zone"), FileMode.Create, FileAccess.Write))
+                using (FileStream fS = new FileStream(Path.Combine(ConfigFolder, authZone + ".zone"), FileMode.Create, FileAccess.Write))
                 {
                     mS.CopyTo(fS);
                 }
@@ -420,14 +419,14 @@ namespace DnsServerCore
         {
             domain = domain.ToLower();
 
-            File.Delete(Path.Combine(_configFolder, domain + ".zone"));
+            File.Delete(Path.Combine(ConfigFolder, domain + ".zone"));
 
             _log.Write("Deleted zone file for domain: " + domain);
         }
 
         private void LoadAllowedZoneFile()
         {
-            string allowedZoneFile = Path.Combine(_configFolder, "allowed.config");
+            string allowedZoneFile = Path.Combine(ConfigFolder, "allowed.config");
 
             try
             {
@@ -473,7 +472,7 @@ namespace DnsServerCore
 
             _totalZonesAllowed = allowedZones.Count;
 
-            string allowedZoneFile = Path.Combine(_configFolder, "allowed.config");
+            string allowedZoneFile = Path.Combine(ConfigFolder, "allowed.config");
 
             using (FileStream fS = new FileStream(allowedZoneFile, FileMode.Create, FileAccess.Write))
             {
@@ -493,7 +492,7 @@ namespace DnsServerCore
 
         private void LoadCustomBlockedZoneFile()
         {
-            string customBlockedZoneFile = Path.Combine(_configFolder, "custom-blocked.config");
+            string customBlockedZoneFile = Path.Combine(ConfigFolder, "custom-blocked.config");
 
             try
             {
@@ -542,7 +541,7 @@ namespace DnsServerCore
         {
             ICollection<Zone.ZoneInfo> customBlockedZones = _customBlockedZoneRoot.ListAuthoritativeZones();
 
-            string customBlockedZoneFile = Path.Combine(_configFolder, "custom-blocked.config");
+            string customBlockedZoneFile = Path.Combine(ConfigFolder, "custom-blocked.config");
 
             using (FileStream fS = new FileStream(customBlockedZoneFile, FileMode.Create, FileAccess.Write))
             {
@@ -602,7 +601,7 @@ namespace DnsServerCore
         {
             using (HashAlgorithm hash = SHA256.Create())
             {
-                return Path.Combine(_configFolder, "blocklists", BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(blockListUrl.AbsoluteUri))).Replace("-", "").ToLower());
+                return Path.Combine(ConfigFolder, "blocklists", BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(blockListUrl.AbsoluteUri))).Replace("-", "").ToLower());
             }
         }
 
@@ -889,23 +888,20 @@ namespace DnsServerCore
             {
                 if (_stats == null)
                 {
-                    string statsFolder = Path.Combine(_configFolder, "stats");
+                    string statsFolder = Path.Combine(ConfigFolder, "stats");
 
                     if (!Directory.Exists(statsFolder))
                         Directory.CreateDirectory(statsFolder);
 
-                    _stats = new StatsManager(statsFolder, _log);
+                    _stats = new StatsManager(_log);
                 }
 
-                _dnsServer = new DnsServer
+                /* Initialize DnsServer with Default configuration */
+                _dnsServer = new DnsServer()
                 {
                     LogManager = _log,
                     QueryLogManager = _log,
-                    StatsManager = _stats,
-                    ServerDomain = Environment.MachineName.ToLower(),
-                    LocalAddresses = new[] { IPAddress.Any, IPAddress.IPv6Any },
-                    // Forwarders =
-                    
+                    StatsManager = _stats
                 };
 
                 LoadZoneFiles();
@@ -971,12 +967,7 @@ namespace DnsServerCore
 
         #region properties
 
-        public string ConfigFolder
-        { get { return _configFolder; } }
-
-        public string ServerDomain
-        { get { return _dnsServer.ServerDomain; } }
-
+        public string ConfigFolder { get; }
 
         #endregion
     }
