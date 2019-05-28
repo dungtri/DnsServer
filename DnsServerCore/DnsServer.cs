@@ -38,9 +38,6 @@ namespace DnsServerCore
 {
     public class DnsServer : IDisposable
     {
-        
-        #region variables
-
         const int LISTENER_THREAD_COUNT = 3;
         const int MAX_HOPS = 16;
 
@@ -68,26 +65,13 @@ namespace DnsServerCore
         int _timeout = 2000;
         int _cachePrefetchEligibility = 2;
         int _cachePrefetchTrigger = 9;
-        int _cachePrefetchSampleIntervalInMinutes = 5;
-        int _cachePrefetchSampleEligibilityHitsPerHour = 30;
-
+        
         int _tcpSendTimeout = 10000;
         int _tcpReceiveTimeout = 10000;
-
-        const int CACHE_PREFETCH_REFRESH_TIMER_INITIAL_INTEVAL = 60000;
-        DateTime _cachePrefetchSamplingTimerTriggersOn;
-        DnsQuestionRecord[] _cachePrefetchSampleList;
-
-        const int CACHE_MAINTENANCE_TIMER_INITIAL_INTEVAL = 60 * 60 * 1000;
-        const int CACHE_MAINTENANCE_TIMER_PERIODIC_INTERVAL = 60 * 60 * 1000;
 
         readonly ConcurrentDictionary<DnsQuestionRecord, RecursiveQueryLock> _recursiveQueryLocks = new ConcurrentDictionary<DnsQuestionRecord, RecursiveQueryLock>(Environment.ProcessorCount * 64, Environment.ProcessorCount * 32);
 
         volatile ServiceState _state = ServiceState.Stopped;
-
-        #endregion
-
-        #region constructor
 
         static DnsServer()
         {
@@ -108,10 +92,6 @@ namespace DnsServerCore
         {
             Cache = new ResolverDnsCache(_cacheZoneRoot);
         }
-
-        #endregion
-
-        #region IDisposable
 
         private bool _disposed = false;
 
@@ -141,10 +121,6 @@ namespace DnsServerCore
         {
             Dispose(true);
         }
-
-        #endregion
-
-        #region private
 
         private void ReadUdpRequestAsync(object parameter)
         {
@@ -1301,66 +1277,6 @@ namespace DnsServerCore
             return null;
         }
 
-        private DnsQuestionRecord GetCacheRefreshNeededQuery(DnsQuestionRecord question, int trigger)
-        {
-            int queryCount = 0;
-
-            while (true)
-            {
-                DnsDatagram cacheResponse = QueryCache(new DnsDatagram(new DnsHeader(0, false, DnsOpcode.StandardQuery, false, false, true, false, false, false, DnsResponseCode.NoError, 1, 0, 0, 0), new DnsQuestionRecord[] { question }, null, null, null), false);
-                if (cacheResponse == null)
-                    return question; //cache expired so refresh question
-
-                if (cacheResponse.Answer.Length == 0)
-                    return null; //dont refresh empty responses
-
-                //inspect response TTL values to decide if refresh is needed
-                foreach (DnsResourceRecord answer in cacheResponse.Answer)
-                {
-                    if ((answer.OriginalTtlValue > _cachePrefetchEligibility) && (answer.TtlValue < trigger))
-                        return question; //TTL eligible and less than trigger so refresh question
-                }
-
-                DnsResourceRecord lastRR = cacheResponse.Answer[cacheResponse.Answer.Length - 1];
-
-                if (lastRR.Type == question.Type)
-                    return null; //answer was resolved
-
-                if (lastRR.Type != DnsResourceRecordType.CNAME)
-                    return null; //invalid response so ignore question
-
-                queryCount++;
-                if (queryCount > MAX_HOPS)
-                    return null; //too many hops so ignore question
-
-                //follow CNAME chain to inspect TTL further
-                question = new DnsQuestionRecord((lastRR.RDATA as DnsCNAMERecord).CNAMEDomainName, question.Type, DnsClass.IN);
-            }
-        }
-
-        private bool CacheRefreshNeeded(DnsQuestionRecord question, int trigger)
-        {
-            DnsDatagram cacheResponse = QueryCache(new DnsDatagram(new DnsHeader(0, false, DnsOpcode.StandardQuery, false, false, true, false, false, false, DnsResponseCode.NoError, 1, 0, 0, 0), new DnsQuestionRecord[] { question }, null, null, null), false);
-            if (cacheResponse == null)
-                return true; //cache expired so refresh needed
-
-            if (cacheResponse.Answer.Length == 0)
-                return false; //dont refresh empty responses
-
-            //inspect response TTL values to decide if refresh is needed
-            foreach (DnsResourceRecord answer in cacheResponse.Answer)
-            {
-                if ((answer.OriginalTtlValue > _cachePrefetchEligibility) && (answer.TtlValue < trigger))
-                    return true; //TTL eligible less than trigger so refresh
-            }
-
-            return false; //no need to refresh for this query
-        }
-
-        #endregion
-
-        #region public
-
         public void Start()
         {
             if (_disposed)
@@ -1624,10 +1540,6 @@ namespace DnsServerCore
             _state = ServiceState.Stopped;
         }
 
-        #endregion
-
-        #region properties
-
         public IPAddress[] LocalAddresses { get; set; }
 
         public string ServerDomain
@@ -1647,11 +1559,11 @@ namespace DnsServerCore
             }
         }
 
-        public bool EnableDnsOverHttp { get; set; } = false;
+        public bool EnableDnsOverHttp { get; set; }
 
-        public bool EnableDnsOverTls { get; set; } = false;
+        public bool EnableDnsOverTls { get; set; }
 
-        public bool EnableDnsOverHttps { get; set; } = false;
+        public bool EnableDnsOverHttps { get; set; }
 
         public bool IsDnsOverHttpsEnabled { get; private set; }
 
@@ -1703,9 +1615,7 @@ namespace DnsServerCore
 
         public StatsManager StatsManager { get; set; }
 
-        #endregion
-
-        class ResolverDnsCache : DnsCache
+        public class ResolverDnsCache : DnsCache
         {
             #region variables
 
@@ -1738,7 +1648,7 @@ namespace DnsServerCore
             #endregion
         }
 
-        class ResolverPrefetchDnsCache : ResolverDnsCache
+        private class ResolverPrefetchDnsCache : ResolverDnsCache
         {
             #region variables
 
