@@ -10,7 +10,7 @@
     <Company>Technitium</Company>
     <Product>Technitium DNS Server</Product>
     <Authors>Shreyas Zare</Authors>
-    <AssemblyName>DnsServerApp</AssemblyName>
+    <AssemblyName>dins</AssemblyName>
     <RootNamespace>DnsServerApp</RootNamespace>
     <StartupObject>DnsServerApp.Program</StartupObject>
     <AssemblyVersion>3.3.0.0</AssemblyVersion>

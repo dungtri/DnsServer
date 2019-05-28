@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Reflection;
 using System.Security.Cryptography;
@@ -21,7 +22,6 @@ namespace DnsServerCore
     {
         private readonly IEnvVarReader _envVarReader;
         readonly string _currentVersion;
-        readonly string _appFolder;
 
         readonly LogManager _log;
         StatsManager _stats;
@@ -47,29 +47,35 @@ namespace DnsServerCore
 
         List<string> _configDisabledZones;
 
+        private string _appName;
+
         public DnsService(IEnvVarReader envVarReader)
         {
+            _log = new LogManager();
+
             _envVarReader = envVarReader;
 
             Assembly assembly = Assembly.GetEntryAssembly();
             AssemblyName assemblyName = assembly.GetName();
+            _appName = assemblyName.Name;
 
             _currentVersion = assemblyName.Version.ToString();
-            _appFolder = Path.GetDirectoryName(assembly.Location);
+            var configFolder = _envVarReader.Get(EnvVars.CONFIG_FOLDER);
+            ConfigFolder = configFolder;
 
-            ConfigFolder = Path.Combine(_appFolder, "config");
+            if (ConfigFolder == null)
+            {
+                var appFolder = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+                ConfigFolder = Path.Combine(appFolder, _appName);
+            }
 
             if (!Directory.Exists(ConfigFolder))
                 Directory.CreateDirectory(ConfigFolder);
-
-            _log = new LogManager();
 
             string blockListsFolder = Path.Combine(ConfigFolder, "blocklists");
 
             if (!Directory.Exists(blockListsFolder))
                 Directory.CreateDirectory(blockListsFolder);
-
-
         }
 
         private bool _disposed = false;
@@ -595,7 +601,7 @@ namespace DnsServerCore
 
                 // TODO: Save config here?
 
-                LoadBlockLists();
+                // LoadBlockLists();
             }
         }
 
@@ -714,7 +720,7 @@ namespace DnsServerCore
                 throw new ObjectDisposedException("DnsService");
 
             if (_state != ServiceState.Stopped)
-                throw new InvalidOperationException("DNS Service is already running.");
+                throw new InvalidOperationException($"{_appName} is already running.");
 
             _state = ServiceState.Starting;
 
@@ -743,6 +749,7 @@ namespace DnsServerCore
 
                 LoadZoneFiles();
 
+                // TODO: A quoi ca sert?
                 if (_configDisabledZones != null)
                 {
                     foreach (string domain in _configDisabledZones)
@@ -751,24 +758,35 @@ namespace DnsServerCore
                         SaveZoneFile(domain);
                     }
                 }
+                var blockListUri = new[] {
+                    "https://dbl.oisd.nl/",
+                    "https://phishing.army/download/phishing_army_blocklist_extended.txt",
+                    "https://tspprs.com/dl/crypto",
+                    "https://tspprs.com/dl/tracking",
+                    "https://tspprs.com/dl/spotify",
+                    "https://raw.githubusercontent.com/CHEF-KOCH/Audio-fingerprint-pages/master/AudioFp.txt",
+                    "https://raw.githubusercontent.com/CHEF-KOCH/Canvas-fingerprinting-pages/master/Canvas.txt",
+                    "https://raw.githubusercontent.com/CHEF-KOCH/WebRTC-tracking/master/WebRTC.txt",
+                    "https://raw.githubusercontent.com/CHEF-KOCH/CKs-FilterList/master/HOSTS/Game.txt",
+                    "https://raw.githubusercontent.com/CHEF-KOCH/NSABlocklist/master/HOSTS",
+                    "https://raw.githubusercontent.com/deathbybandaid/piholeparser/master/Subscribable-Lists/ParsedBlacklists/AakList.txt",
+                    "https://raw.githubusercontent.com/deathbybandaid/piholeparser/master/Subscribable-Lists/ParsedBlacklists/Prebake-Obtrusive.txt",
+                    "https://jasonhill.co.uk/pfsense/ytadblock.txt"
+                }.Select(url => new Uri(url));
 
-                //ThreadPool.QueueUserWorkItem(delegate (object state)
-                //{
-                //    try
-                //    {
-                //        LoadAllowedZoneFile();
-                //        LoadCustomBlockedZoneFile();
-                //        LoadBlockLists();
-                //    }
-                //    catch (Exception ex)
-                //    {
-                //        _log.Write(ex);
-                //    }
-                //});
+                _blockListUrls.AddRange(blockListUri);
+
+                UpdateBlockLists();
 
                 _dnsServer.Start();
 
                 _state = ServiceState.Running;
+
+                _log.Write($"{_appName} was started successfully.");
+                Console.WriteLine("Using config folder: " + ConfigFolder);
+                Console.WriteLine("");
+                Console.WriteLine("");
+                Console.WriteLine("Press [CTRL + C] to stop...");
             }
             catch (Exception ex)
             {
@@ -791,7 +809,7 @@ namespace DnsServerCore
                 _dnsServer.QueryLogManager = _log;
             }
 
-            var ipV6Enabled = _envVarReader.Get(EnvVars.IPV6_ENABLED) ?? "false";
+            var ipV6Enabled = _envVarReader.Get(EnvVars.IPV6_ENABLED) ?? "true";
             var ipAddresses = new List<IPAddress> { IPAddress.Any };
             if (Convert.ToBoolean(ipV6Enabled))
             {

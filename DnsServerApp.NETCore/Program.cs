@@ -19,12 +19,6 @@ namespace DnsServerApp
                 service = new DnsService(envVarReader);
                 service.Start();
 
-                Console.WriteLine("Technitium DNS Server was started successfully.");
-                Console.WriteLine("Using config folder: " + service.ConfigFolder);
-                Console.WriteLine("");
-                Console.WriteLine("");
-                Console.WriteLine("Press [CTRL + C] to stop...");
-
                 Console.CancelKeyPress += delegate
                 {
                     cancellationTokenSource.Cancel(false);

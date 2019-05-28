@@ -56,19 +56,10 @@ namespace DnsServerCore
 
         #region private
 
-        private void StartNewLog()
-        {
-
-            _logOut = Console.Out;
-
-        }
-
         private void Write(DateTime dateTime, string message)
         {
             _logOut.WriteLine("[" + dateTime.ToString("yyyy-MM-dd HH:mm:ss") + " UTC] " + message);
             _logOut.Flush();
-
-            Console.WriteLine("[" + dateTime.ToString("yyyy-MM-dd HH:mm:ss") + " UTC] " + message);
         }
 
         #endregion
