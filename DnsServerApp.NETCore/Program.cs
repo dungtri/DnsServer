@@ -2,6 +2,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using DnsServerCore.Configuration;
 
 namespace DnsServerApp
 {
@@ -9,16 +10,13 @@ namespace DnsServerApp
     {
         static async Task Main(string[] args)
         {
-            string configFolder = null;
-
-            if (args.Length == 1)
-                configFolder = args[0];
-
             DnsService service = null;
+            IEnvVarReader envVarReader = new EnvVarReader();
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             try
             {
-                service = new DnsService(configFolder);
+                
+                service = new DnsService(envVarReader);
                 service.Start();
 
                 Console.WriteLine("Technitium DNS Server was started successfully.");

@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using DnsServerCore.Configuration;
 using DnsServerCore.IO;
 using DnsServerCore.Net;
 using DnsServerCore.Net.Dns;
@@ -18,6 +19,7 @@ namespace DnsServerCore
 {
     public class DnsService : IDisposable
     {
+        private readonly IEnvVarReader _envVarReader;
         readonly string _currentVersion;
         readonly string _appFolder;
 
@@ -45,18 +47,17 @@ namespace DnsServerCore
 
         List<string> _configDisabledZones;
 
-        public DnsService(string configFolder = null)
+        public DnsService(IEnvVarReader envVarReader)
         {
+            _envVarReader = envVarReader;
+
             Assembly assembly = Assembly.GetEntryAssembly();
             AssemblyName assemblyName = assembly.GetName();
 
             _currentVersion = assemblyName.Version.ToString();
             _appFolder = Path.GetDirectoryName(assembly.Location);
 
-            if (configFolder == null)
-                ConfigFolder = Path.Combine(_appFolder, "config");
-            else
-                ConfigFolder = configFolder;
+            ConfigFolder = Path.Combine(_appFolder, "config");
 
             if (!Directory.Exists(ConfigFolder))
                 Directory.CreateDirectory(ConfigFolder);
@@ -67,6 +68,8 @@ namespace DnsServerCore
 
             if (!Directory.Exists(blockListsFolder))
                 Directory.CreateDirectory(blockListsFolder);
+
+
         }
 
         private bool _disposed = false;
@@ -730,14 +733,13 @@ namespace DnsServerCore
                 /* Initialize DnsServer with Default configuration */
                 _dnsServer = new DnsServer()
                 {
-                    LogManager = _log,
-                    QueryLogManager = _log,
                     StatsManager = _stats,
                     ServerDomain = Environment.MachineName.ToLower(),
-                    LocalAddresses = new[] { IPAddress.Any, IPAddress.IPv6Any },
                     AllowRecursion = true,
                     AllowRecursionOnlyForPrivateNetworks = true,
                 };
+
+                LoadEnvironmentSettings();
 
                 LoadZoneFiles();
 
@@ -773,6 +775,29 @@ namespace DnsServerCore
                 _log.Write("Failed to start DNS Web Service (v" + _currentVersion + ")\r\n" + ex.ToString());
                 throw;
             }
+        }
+
+        private void LoadEnvironmentSettings()
+        {
+            var logEnabled = _envVarReader.Get(EnvVars.LOG_ENABLED) ?? "true";
+            if (Convert.ToBoolean(logEnabled))
+            {
+                _dnsServer.LogManager = _log;
+            }
+
+            var logQueryEnabled = _envVarReader.Get(EnvVars.LOG_QUERY_ENABLED) ?? "true";
+            if (Convert.ToBoolean(logQueryEnabled))
+            {
+                _dnsServer.QueryLogManager = _log;
+            }
+
+            var ipV6Enabled = _envVarReader.Get(EnvVars.IPV6_ENABLED) ?? "false";
+            var ipAddresses = new List<IPAddress> { IPAddress.Any };
+            if (Convert.ToBoolean(ipV6Enabled))
+            {
+                ipAddresses.Add(IPAddress.IPv6Any);
+            }
+            _dnsServer.LocalAddresses = ipAddresses.ToArray();
         }
 
         public void Stop()
