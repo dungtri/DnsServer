@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using DnsServerCore.Net.Dns;
 
 namespace DnsServerCore
 {
+    [DebuggerDisplay("Name: {_zoneName}, Label: {_zoneLabel}, Authoritar: {_authoritativeZone}, Disabled: {_disabled}, Parent: [{_parentZone}]")]
     public class Zone
     {
         #region variables

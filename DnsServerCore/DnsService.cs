@@ -776,7 +776,7 @@ namespace DnsServerCore
 
                 _blockListUrls.AddRange(blockListUri);
 
-                UpdateBlockLists();
+                // UpdateBlockLists();
 
                 _dnsServer.Start();
 

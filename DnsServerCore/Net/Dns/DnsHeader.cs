@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
 
@@ -54,6 +55,8 @@ namespace DnsServerCore.Net.Dns
         BADTRUNC = 22,
         BADCOOKIE = 23
     }
+
+    [DebuggerDisplay("{Identifier} {OPCODE} {RCODE}")]
 
     public class DnsHeader
     {
