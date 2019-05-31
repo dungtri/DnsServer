@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using System;
 using System.IO;
 
-namespace DnsServerCore.IO
+namespace DnsServer.Core.IO
 {
     public class OffsetStream : Stream
     {

@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 
-namespace DnsServerCore.Net.Dns
+namespace DnsServer.Core.Net.Dns
 {
     public class SimpleDnsCache : DnsCache
     {

@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Text;
 
-namespace DnsServerCore.IO
+namespace DnsServer.Core.IO
 {
     public static class BinaryReaderExtension
     {

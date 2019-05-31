@@ -18,15 +18,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.IO;
 using System.Net;
-using System.Text;
-using System.Threading;
-using DnsServerCore.Net.Dns;
+using DnsServer.Core.Net.Dns;
 
-namespace DnsServerCore
+namespace DnsServer.Core
 {
     public enum StatsResponseType
     {

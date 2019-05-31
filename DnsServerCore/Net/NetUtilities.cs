@@ -23,7 +23,7 @@ using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 
-namespace DnsServerCore.Net
+namespace DnsServer.Core.Net
 {
     public class NetUtilities
     {

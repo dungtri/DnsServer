@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 
-namespace DnsServerCore.Net.Dns
+namespace DnsServer.Core.Net.Dns
 {
     public class DnsSOARecord : DnsResourceRecordData
     {

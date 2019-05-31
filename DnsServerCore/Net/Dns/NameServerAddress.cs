@@ -22,10 +22,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using DnsServerCore.IO;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.IO;
+using DnsServer.Core.Net.Proxy;
 
-namespace DnsServerCore.Net.Dns
+namespace DnsServer.Core.Net.Dns
 {
     public class NameServerAddress : IComparable<NameServerAddress>
     {

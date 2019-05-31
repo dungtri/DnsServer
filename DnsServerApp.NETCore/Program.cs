@@ -1,8 +1,8 @@
-﻿using DnsServerCore;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using DnsServerCore.Configuration;
+using DnsServer.Core;
+using DnsServer.Core.Configuration;
 
 namespace DnsServerApp
 {

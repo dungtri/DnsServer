@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DnsServerCore
+namespace DnsServer.Core
 {
     public class DnsServiceException : Exception
     {

@@ -1,4 +1,4 @@
-﻿namespace DnsServerCore.Configuration
+﻿namespace DnsServer.Core.Configuration
 {
     public static class EnvVars
     {

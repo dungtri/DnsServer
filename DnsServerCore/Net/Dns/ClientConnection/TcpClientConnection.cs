@@ -22,10 +22,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
-using DnsServerCore.IO;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.IO;
+using DnsServer.Core.Net.Proxy;
 
-namespace DnsServerCore.Net.Dns.ClientConnection
+namespace DnsServer.Core.Net.Dns.ClientConnection
 {
     public class TcpClientConnection : DnsClientConnection
     {

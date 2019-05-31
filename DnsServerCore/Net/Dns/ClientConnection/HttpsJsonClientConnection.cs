@@ -19,10 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 using System;
 using System.Text;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.Net.Proxy;
 using Newtonsoft.Json;
 
-namespace DnsServerCore.Net.Dns.ClientConnection
+namespace DnsServer.Core.Net.Dns.ClientConnection
 {
     public class HttpsJsonClientConnection : DnsClientConnection
     {

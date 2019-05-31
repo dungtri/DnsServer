@@ -1,4 +1,4 @@
-﻿namespace DnsServerCore
+﻿namespace DnsServer.Core
 {
     public enum ServiceState
     {

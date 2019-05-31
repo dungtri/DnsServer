@@ -1,7 +1,4 @@
-﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Converters;
-using System;
-using System.Collections.Concurrent;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -11,12 +8,12 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using DnsServerCore.Configuration;
-using DnsServerCore.IO;
-using DnsServerCore.Net;
-using DnsServerCore.Net.Dns;
+using DnsServer.Core.Configuration;
+using DnsServer.Core.IO;
+using DnsServer.Core.Net;
+using DnsServer.Core.Net.Dns;
 
-namespace DnsServerCore
+namespace DnsServer.Core
 {
     public class DnsService : IDisposable
     {

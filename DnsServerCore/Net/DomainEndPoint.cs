@@ -21,9 +21,9 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using DnsServerCore.Net.Dns;
+using DnsServer.Core.Net.Dns;
 
-namespace DnsServerCore.Net
+namespace DnsServer.Core.Net
 {
     public class DomainEndPoint : EndPoint
     {

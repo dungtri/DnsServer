@@ -1,10 +1,10 @@
 ﻿using System;
 using System.IO;
 using System.Net;
-using DnsServerCore.IO;
-using DnsServerCore.Net.Dns;
+using DnsServer.Core.IO;
+using DnsServer.Core.Net.Dns;
 
-namespace DnsServerCore
+namespace DnsServer.Core
 {
     public class LogManager : IDisposable
     {

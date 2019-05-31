@@ -24,7 +24,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 
-namespace DnsServerCore.IO
+namespace DnsServer.Core.IO
 {
     public enum ExtractLocation : byte
     {

@@ -21,7 +21,7 @@ using System;
 using System.Net;
 using System.Net.Sockets;
 
-namespace DnsServerCore.Net.Proxy
+namespace DnsServer.Core.Net.Proxy
 {
     public enum NetProxyType : byte
     {

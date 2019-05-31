@@ -22,7 +22,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace DnsServerCore.IO
+namespace DnsServer.Core.IO
 {
     [Obsolete]
     public enum BincodingType : byte

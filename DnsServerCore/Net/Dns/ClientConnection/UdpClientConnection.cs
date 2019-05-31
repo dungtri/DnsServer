@@ -21,9 +21,9 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.Net.Proxy;
 
-namespace DnsServerCore.Net.Dns.ClientConnection
+namespace DnsServer.Core.Net.Dns.ClientConnection
 {
     public class UdpClientConnection : DnsClientConnection
     {

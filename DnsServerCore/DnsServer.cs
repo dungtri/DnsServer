@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-using Newtonsoft.Json;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -29,12 +28,13 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using DnsServerCore.IO;
-using DnsServerCore.Net;
-using DnsServerCore.Net.Dns;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.IO;
+using DnsServer.Core.Net;
+using DnsServer.Core.Net.Dns;
+using DnsServer.Core.Net.Proxy;
+using Newtonsoft.Json;
 
-namespace DnsServerCore
+namespace DnsServer.Core
 {
     public class DnsServer : IDisposable
     {

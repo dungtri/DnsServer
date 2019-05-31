@@ -21,9 +21,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using DnsServerCore.IO;
+using DnsServer.Core.IO;
 
-namespace DnsServerCore.Net.Dns
+namespace DnsServer.Core.Net.Dns
 {
     public class DnsUnknownRecord : DnsResourceRecordData
     {

@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.28917.181
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DnsServerCore", "DnsServerCore\DnsServerCore.csproj", "{4494B79B-588C-41F2-95AD-0897123AF154}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DnsServer.Core", "DnsServerCore\DnsServer.Core.csproj", "{4494B79B-588C-41F2-95AD-0897123AF154}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DnsServerApp.NETCore", "DnsServerApp.NETCore\DnsServerApp.NETCore.csproj", "{ADE80805-9FA7-4F66-8A18-57B98F8C0B0F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DnsServer.App", "DnsServerApp.NETCore\DnsServer.App.csproj", "{ADE80805-9FA7-4F66-8A18-57B98F8C0B0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DnsServer.Tests", "DnsServer.Tests\DnsServer.Tests.csproj", "{9E59652B-60D4-4D6A-B113-DD7A95F7951D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{ADE80805-9FA7-4F66-8A18-57B98F8C0B0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{ADE80805-9FA7-4F66-8A18-57B98F8C0B0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{ADE80805-9FA7-4F66-8A18-57B98F8C0B0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9E59652B-60D4-4D6A-B113-DD7A95F7951D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9E59652B-60D4-4D6A-B113-DD7A95F7951D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9E59652B-60D4-4D6A-B113-DD7A95F7951D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9E59652B-60D4-4D6A-B113-DD7A95F7951D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

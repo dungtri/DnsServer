@@ -21,7 +21,7 @@ using System;
 using System.IO;
 using System.Threading;
 
-namespace DnsServerCore.IO
+namespace DnsServer.Core.IO
 {
     public class Pipe
     {

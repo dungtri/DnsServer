@@ -22,10 +22,10 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
-using DnsServerCore.Net.Dns;
-using DnsServerCore.Net.Proxy;
+using DnsServer.Core.Net.Dns;
+using DnsServer.Core.Net.Proxy;
 
-namespace DnsServerCore.Net
+namespace DnsServer.Core.Net
 {
     public enum WebClientExNetworkType
     {

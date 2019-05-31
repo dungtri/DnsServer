@@ -21,9 +21,9 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using DnsServerCore.IO;
+using DnsServer.Core.IO;
 
-namespace DnsServerCore.Net
+namespace DnsServer.Core.Net
 {
     public static class EndPointExtension
     {

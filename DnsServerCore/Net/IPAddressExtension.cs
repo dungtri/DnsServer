@@ -22,7 +22,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 
-namespace DnsServerCore.Net
+namespace DnsServer.Core.Net
 {
     public static class IPAddressExtension
     {

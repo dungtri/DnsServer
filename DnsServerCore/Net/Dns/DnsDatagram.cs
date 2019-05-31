@@ -23,10 +23,10 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.Serialization;
 using System.Text;
-using DnsServerCore.IO;
+using DnsServer.Core.IO;
 using Newtonsoft.Json;
 
-namespace DnsServerCore.Net.Dns
+namespace DnsServer.Core.Net.Dns
 {
     [DebuggerDisplay("{Header}")]
     public class DnsDatagram

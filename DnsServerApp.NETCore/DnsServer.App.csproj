@@ -42,7 +42,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DnsServerCore\DnsServerCore.csproj" />
+    <PackageReference Include="JustEat.StatsD" Version="4.0.1" />
+    <PackageReference Include="sqlite-net-pcl" Version="1.5.231" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DnsServerCore\DnsServer.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

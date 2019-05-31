@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace DnsServerCore.Configuration
+namespace DnsServer.Core.Configuration
 {
     public interface IEnvVarReader
     {

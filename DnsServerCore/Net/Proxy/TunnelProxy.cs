@@ -25,9 +25,9 @@ using System.Net.Sockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
-using DnsServerCore.IO;
+using DnsServer.Core.IO;
 
-namespace DnsServerCore.Net.Proxy
+namespace DnsServer.Core.Net.Proxy
 {
     public class TunnelProxy : IDisposable
     {
