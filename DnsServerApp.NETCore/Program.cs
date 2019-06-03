@@ -10,47 +10,31 @@ namespace DnsServerApp
     {
         static async Task Main(string[] args)
         {
-            DnsService service = null;
             IEnvVarReader envVarReader = new EnvVarReader();
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             try
             {
                 
-                service = new DnsService(envVarReader);
-                service.Start();
-
-                Console.CancelKeyPress += delegate
+                var service = new DnsService(envVarReader);
+                
+                Console.CancelKeyPress += (sender, eventArgs) =>
                 {
-                    cancellationTokenSource.Cancel(false);
+                    Console.WriteLine("Cancel event triggered");
+                    cancellationTokenSource
+                        .Cancel(false);
+
+                    eventArgs.Cancel = true;
                 };
 
-                while (true)
-                {
-                    await Task.Delay(1000, cancellationTokenSource.Token);
-
-                    if (cancellationTokenSource.Token.IsCancellationRequested)
-                    {
-                        break;
-                    }
-                }
+                await service.Start(cancellationTokenSource.Token).ConfigureAwait(false);
+                service.Dispose();
             }
-            catch (ThreadInterruptedException) { }
-            catch (TaskCanceledException) { }
             catch (Exception ex)
             {
                 Console.WriteLine(ex.ToString());
             }
-            finally
-            {
-                if (service != null)
-                {
-                    Console.WriteLine("");
-                    Console.WriteLine("Technitium DNS Server is stopping...");
-                    service.Dispose();
-                    service = null;
-                    Console.WriteLine("Technitium DNS Server was stopped successfully.");
-                }
-            }
+
+            Console.WriteLine("DNS Server was stopped successfully.");
         }
     }
 }

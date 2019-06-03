@@ -53,10 +53,6 @@ namespace DnsServer.Core
         readonly Zone _cacheZoneRoot = new Zone(false);
         Zone _blockedZoneRoot = new Zone(true);
 
-        const uint NEGATIVE_RECORD_TTL = 300u;
-        const uint MINIMUM_RECORD_TTL = 0u;
-        const uint SERVE_STALE_TTL = 7 * 24 * 60 * 60; //7 days serve stale ttl as per draft-ietf-dnsop-serve-stale-04
-
         public bool AllowRecursion { get; set; } = true;
         public bool AllowRecursionOnlyForPrivateNetworks { get; set; } = true;
         NameServerAddress[] _forwarders;
@@ -1614,69 +1610,5 @@ namespace DnsServer.Core
         public LogManager QueryLogManager { get; set; }
 
         public StatsManager StatsManager { get; set; }
-
-        public class ResolverDnsCache : DnsCache
-        {
-            #region variables
-
-            protected readonly Zone _cacheZoneRoot;
-
-            #endregion
-
-            #region constructor
-
-            public ResolverDnsCache(Zone cacheZoneRoot)
-                : base(NEGATIVE_RECORD_TTL, MINIMUM_RECORD_TTL, SERVE_STALE_TTL)
-            {
-                _cacheZoneRoot = cacheZoneRoot;
-            }
-
-            #endregion
-
-            #region public
-
-            public override DnsDatagram Query(DnsDatagram request)
-            {
-                return _cacheZoneRoot.Query(request);
-            }
-
-            protected override void CacheRecords(ICollection<DnsResourceRecord> resourceRecords)
-            {
-                _cacheZoneRoot.SetRecords(resourceRecords);
-            }
-
-            #endregion
-        }
-
-        private class ResolverPrefetchDnsCache : ResolverDnsCache
-        {
-            #region variables
-
-            readonly DnsQuestionRecord _prefetchQuery;
-
-            #endregion
-
-            #region constructor
-
-            public ResolverPrefetchDnsCache(Zone cacheZoneRoot, DnsQuestionRecord prefetchQuery)
-                : base(cacheZoneRoot)
-            {
-                _prefetchQuery = prefetchQuery;
-            }
-
-            #endregion
-
-            #region public
-
-            public override DnsDatagram Query(DnsDatagram request)
-            {
-                if (_prefetchQuery.Equals(request.Question[0]))
-                    return _cacheZoneRoot.QueryCacheGetClosestNameServers(request); //return closest name servers so that the recursive resolver queries them to refreshes cache instead of returning response from cache
-
-                return _cacheZoneRoot.Query(request);
-            }
-
-            #endregion
-        }
     }
 }

@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using DnsServer.Core.Configuration;
 using DnsServer.Core.IO;
 using DnsServer.Core.Net;
@@ -23,7 +24,7 @@ namespace DnsServer.Core
         readonly LogManager _log;
         StatsManager _stats;
 
-        DnsServer _dnsServer;
+        DnsServerAsync _dnsServer;
 
         string _tlsCertificatePath;
         string _tlsCertificatePassword;
@@ -46,8 +47,12 @@ namespace DnsServer.Core
 
         private string _appName;
 
+        private string ServerDomain { get; }
+
         public DnsService(IEnvVarReader envVarReader)
         {
+            ServerDomain = Environment.MachineName.ToLower();
+
             _log = new LogManager();
 
             _envVarReader = envVarReader;
@@ -88,8 +93,8 @@ namespace DnsServer.Core
             {
                 Stop();
 
-                if (_dnsServer != null)
-                    _dnsServer.Dispose();
+                //if (_dnsServer != null)
+                //    _dnsServer.Dispose();
 
                 if (_log != null)
                     _log.Dispose();
@@ -194,14 +199,14 @@ namespace DnsServer.Core
 
         private void AllowZone(string domain)
         {
-            _dnsServer.AllowedZoneRoot.SetRecords(domain, DnsResourceRecordType.SOA, 60, new DnsResourceRecordData[] { new DnsSOARecord(_dnsServer.ServerDomain, "hostmaster." + _dnsServer.ServerDomain, 1, 28800, 7200, 604800, 600) });
+            _dnsServer.AllowedZoneRoot.SetRecords(domain, DnsResourceRecordType.SOA, 60, new DnsResourceRecordData[] { new DnsSOARecord(ServerDomain, "hostmaster." + ServerDomain, 1, 28800, 7200, 604800, 600) });
         }
 
         private void BlockZone(string domain, Zone blockedZoneRoot, string blockListUrl)
         {
             blockedZoneRoot.SetRecords(new DnsResourceRecord[]
             {
-                new DnsResourceRecord(domain, DnsResourceRecordType.SOA, DnsClass.IN, 60, new DnsSOARecord(_dnsServer.ServerDomain, "hostmaster." + _dnsServer.ServerDomain, 1, 28800, 7200, 604800, 600)),
+                new DnsResourceRecord(domain, DnsResourceRecordType.SOA, DnsClass.IN, 60, new DnsSOARecord(ServerDomain, "hostmaster." + ServerDomain, 1, 28800, 7200, 604800, 600)),
                 new DnsResourceRecord(domain, DnsResourceRecordType.A, DnsClass.IN, 60, new DnsARecord(IPAddress.Any)),
                 new DnsResourceRecord(domain, DnsResourceRecordType.AAAA, DnsClass.IN, 60, new DnsAAAARecord(IPAddress.IPv6Any))
             });
@@ -211,8 +216,8 @@ namespace DnsServer.Core
 
         private void CreateZone(string domain)
         {
-            _dnsServer.AuthoritativeZoneRoot.SetRecords(domain, DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(_dnsServer.ServerDomain, "hostmaster." + _dnsServer.ServerDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
-            _dnsServer.AuthoritativeZoneRoot.SetRecords(domain, DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(_dnsServer.ServerDomain) });
+            _dnsServer.AuthoritativeZoneRoot.SetRecords(domain, DnsResourceRecordType.SOA, 14400, new DnsResourceRecordData[] { new DnsSOARecord(ServerDomain, "hostmaster." + ServerDomain, uint.Parse(DateTime.UtcNow.ToString("yyyyMMddHH")), 28800, 7200, 604800, 600) });
+            _dnsServer.AuthoritativeZoneRoot.SetRecords(domain, DnsResourceRecordType.NS, 14400, new DnsResourceRecordData[] { new DnsNSRecord(ServerDomain) });
         }
 
         private void LoadZoneFiles()
@@ -711,7 +716,7 @@ namespace DnsServer.Core
             _log.Write("DNS Server TLS certificate was loaded: " + tlsCertificatePath);
         }
 
-        public void Start()
+        public async Task Start(CancellationToken cancellationToken)
         {
             if (_disposed)
                 throw new ObjectDisposedException("DnsService");
@@ -734,12 +739,12 @@ namespace DnsServer.Core
                 }
 
                 /* Initialize DnsServer with Default configuration */
-                _dnsServer = new DnsServer()
+                _dnsServer = new DnsServerAsync()
                 {
                     StatsManager = _stats,
-                    ServerDomain = Environment.MachineName.ToLower(),
-                    AllowRecursion = true,
-                    AllowRecursionOnlyForPrivateNetworks = true,
+                    //ServerDomain = Environment.MachineName.ToLower(),
+                    //AllowRecursion = true,
+                    //AllowRecursionOnlyForPrivateNetworks = true,
                 };
 
                 LoadEnvironmentSettings();
@@ -775,15 +780,9 @@ namespace DnsServer.Core
 
                 // UpdateBlockLists();
 
-                _dnsServer.Start();
+                await _dnsServer.Start(cancellationToken);
 
                 _state = ServiceState.Running;
-
-                _log.Write($"{_appName} was started successfully.");
-                Console.WriteLine("Using config folder: " + ConfigFolder);
-                Console.WriteLine("");
-                Console.WriteLine("");
-                Console.WriteLine("Press [CTRL + C] to stop...");
             }
             catch (Exception ex)
             {
@@ -824,8 +823,6 @@ namespace DnsServer.Core
 
             try
             {
-                _dnsServer.Stop();
-
                 StopBlockListUpdateTimer();
                 StopTlsCertificateUpdateTimer();
 
